@@ -37,7 +37,14 @@ async function insertOrThrow(
   table: string,
   rows: Record<string, unknown> | Record<string, unknown>[],
 ): Promise<void> {
-  const { error } = await supabase.from(table).insert(rows);
+  // `defaultToNull: false` matters whenever the rows are not all the same
+  // shape. PostgREST inserts the union of every key it sees, so by default a
+  // row that omits a key is sent an explicit null — which defeats the column
+  // default and trips any NOT NULL constraint. This makes an omitted key mean
+  // "use the default", which is what the seed data assumes.
+  const { error } = await supabase.from(table).insert(rows, {
+    defaultToNull: false,
+  });
   if (error) {
     throw new Error(`${table}: ${error.message}`);
   }
@@ -111,9 +118,11 @@ export async function seedDemoData(
     },
   ];
 
+  // The depository rows carry no payment strategy and the card rows carry no
+  // available balance, so this insert needs the same defaulting as the rest.
   const { data: accounts, error: accountError } = await supabase
     .from("spendable_accounts")
-    .insert(accountRows)
+    .insert(accountRows, { defaultToNull: false })
     .select("id, name, type");
 
   if (accountError) throw new Error(`spendable_accounts: ${accountError.message}`);
