@@ -24,6 +24,25 @@ interface SeedSummary {
   obligations: number;
 }
 
+/**
+ * Insert, and fail loudly if the database refuses.
+ *
+ * supabase-js reports errors in the result rather than throwing, so an
+ * unchecked insert silently does nothing — a missing RLS policy then surfaces
+ * as an unrelated crash further down, or as no data and no complaint at all.
+ * Naming the table in the message is what makes that diagnosable.
+ */
+async function insertOrThrow(
+  supabase: SupabaseClient,
+  table: string,
+  rows: Record<string, unknown> | Record<string, unknown>[],
+): Promise<void> {
+  const { error } = await supabase.from(table).insert(rows);
+  if (error) {
+    throw new Error(`${table}: ${error.message}`);
+  }
+}
+
 export async function seedDemoData(
   supabase: SupabaseClient,
   userId: string,
@@ -97,7 +116,7 @@ export async function seedDemoData(
     .insert(accountRows)
     .select("id, name, type");
 
-  if (accountError) throw new Error(accountError.message);
+  if (accountError) throw new Error(`spendable_accounts: ${accountError.message}`);
 
   const byName = new Map((accounts ?? []).map((a) => [a.name as string, a.id as string]));
   const checkingId = byName.get("Everyday Checking") as string;
@@ -106,7 +125,7 @@ export async function seedDemoData(
   const travelId = byName.get("Travel Card") as string;
 
   // --- Liability detail for the cards --------------------------------------
-  await supabase.from("spendable_liabilities").insert([
+  await insertOrThrow(supabase, "spendable_liabilities", [
     {
       user_id: userId,
       account_id: rewardsId,
@@ -130,7 +149,7 @@ export async function seedDemoData(
   ]);
 
   // --- Manual debt ---------------------------------------------------------
-  await supabase.from("spendable_manual_liabilities").insert({
+  await insertOrThrow(supabase, "spendable_manual_liabilities", {
     user_id: userId,
     name: "Student Loan",
     liability_type: "student_loan",
@@ -145,7 +164,7 @@ export async function seedDemoData(
   });
 
   // --- Income --------------------------------------------------------------
-  await supabase.from("spendable_income_sources").insert({
+  await insertOrThrow(supabase, "spendable_income_sources", {
     user_id: userId,
     name: "Paycheck — Northwind Studio",
     expected_net_amount: 2640,
@@ -217,7 +236,7 @@ export async function seedDemoData(
     },
   ];
 
-  await supabase.from("spendable_recurring_obligations").insert(
+  await insertOrThrow(supabase, "spendable_recurring_obligations", 
     obligations.map((o) => ({
       user_id: userId,
       name: o.name,
@@ -234,7 +253,7 @@ export async function seedDemoData(
   );
 
   // --- Goals ---------------------------------------------------------------
-  await supabase.from("spendable_goals").insert([
+  await insertOrThrow(supabase, "spendable_goals", [
     {
       user_id: userId,
       name: "Emergency Fund",
@@ -277,7 +296,7 @@ export async function seedDemoData(
   ]);
 
   // --- One-time planned expense -------------------------------------------
-  await supabase.from("spendable_planned_expenses").insert({
+  await insertOrThrow(supabase, "spendable_planned_expenses", {
     user_id: userId,
     name: "Flight home for the holidays",
     amount: 385,

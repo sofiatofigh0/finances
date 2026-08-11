@@ -38,12 +38,13 @@ export async function POST(request: Request) {
     const summary = await seedDemoData(supabase, user.id);
     return NextResponse.json({ ok: true, ...summary });
   } catch (error) {
-    logger.error("demo.seed_failed", {
-      userId: user.id,
-      message: error instanceof Error ? error.message : "unknown",
-    });
+    const message = error instanceof Error ? error.message : "unknown";
+    logger.error("demo.seed_failed", { userId: user.id, message });
+    // This route only exists when demo seeding is deliberately enabled, and it
+    // writes nothing but fake data — so the underlying reason is more useful
+    // returned than hidden. Real financial endpoints stay opaque.
     return NextResponse.json(
-      { error: "We couldn't load the demo data." },
+      { error: `We couldn't load the demo data — ${message}` },
       { status: 500 },
     );
   }
