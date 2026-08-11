@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
 import { getIntegrationStatus } from "@/lib/env";
@@ -23,7 +24,11 @@ export default function LoginPage() {
         </div>
 
         {status.supabase ? (
-          <LoginForm />
+          // LoginForm reads ?next= from the URL, which is only known on the
+          // client. Without this boundary the static prerender of /login fails.
+          <Suspense fallback={<div className="min-h-[232px]" />}>
+            <LoginForm />
+          </Suspense>
         ) : (
           <div className="rounded-[var(--radius-card)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-5">
             <h2 className="text-[15px] font-semibold">Finish setup first</h2>
