@@ -98,7 +98,8 @@ export function LoginForm() {
         </div>
         <h2 className="text-[15px] font-semibold">Check your email</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-ink-muted)]">
-          We sent a six-digit code to <strong>{email}</strong>. Enter it below.
+          We sent a sign-in email to <strong>{email}</strong>. Tap the link in
+          it, or enter the six-digit code below if the email includes one.
         </p>
 
         <form onSubmit={handleVerifyCode} className="mt-4" noValidate>

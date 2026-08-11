@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AuthErrorDetail } from "@/components/auth/auth-error-detail";
 
 export default function AuthCodeErrorPage() {
   return (
@@ -12,6 +14,11 @@ export default function AuthCodeErrorPage() {
           Sign-in links expire after a short while and can only be used once.
           Request a fresh one and it&apos;ll work.
         </p>
+
+        <Suspense fallback={null}>
+          <AuthErrorDetail />
+        </Suspense>
+
         <Button asChild className="mt-6 w-full">
           <Link href="/login">Back to sign in</Link>
         </Button>

@@ -11,8 +11,24 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
 
+  // Carry the real reason to the error page. Supabase reports a rejected token
+  // here (expired, already used, redirect not allowed), and silently collapsing
+  // every one of those into "that link didn't work" leaves nothing to act on.
+  const errorPage = (reason: string, detail?: string | null) => {
+    const url = new URL("/auth/auth-code-error", origin);
+    url.searchParams.set("reason", reason);
+    if (detail) url.searchParams.set("detail", detail.slice(0, 300));
+    return NextResponse.redirect(url);
+  };
+
+  const providerError = searchParams.get("error_code") ?? searchParams.get("error");
+  if (providerError) {
+    logger.warn("auth.callback.provider_error", { code: providerError });
+    return errorPage(providerError, searchParams.get("error_description"));
+  }
+
   if (!code) {
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    return errorPage("missing_code");
   }
 
   const supabase = await createServerSupabase();
@@ -20,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.warn("auth.callback.exchange_failed", { message: error.message });
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    return errorPage("exchange_failed", error.message);
   }
 
   // `x-forwarded-host` is what Netlify sets; trust it for the redirect target
