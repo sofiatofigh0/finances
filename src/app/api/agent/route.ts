@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSessionUser, createServerSupabase } from "@/lib/supabase/server";
+import { getSessionUser, createServerSupabase, isGuest } from "@/lib/supabase/server";
 import { loadFinancialContext } from "@/lib/db/context";
 import { isAgentConfigured, runAgentTurn } from "@/lib/agent/run";
 import type { ResultCard } from "@/lib/agent/types";
@@ -8,6 +8,9 @@ import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
+
+/** How many questions a demo visitor may ask before the assistant stops. */
+const GUEST_MESSAGE_LIMIT = 8;
 
 const schema = z.object({
   message: z.string().min(1).max(2000),
@@ -42,6 +45,26 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createServerSupabase();
+
+  // A guest can try the assistant, but not run up an unbounded model bill on a
+  // publicly linked deployment. The cap is per guest account, and each visitor
+  // gets their own, so one person exhausting it affects nobody else.
+  if (isGuest(user)) {
+    const { count } = await supabase
+      .from("spendable_agent_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("role", "user");
+
+    if ((count ?? 0) >= GUEST_MESSAGE_LIMIT) {
+      return NextResponse.json(
+        {
+          error: `The demo allows ${GUEST_MESSAGE_LIMIT} questions. Everything else — Safe to Spend, the purchase simulator, goals — stays available.`,
+        },
+        { status: 429 },
+      );
+    }
+  }
 
   // Resolve or create the conversation thread.
   let threadId = parsed.data.threadId;

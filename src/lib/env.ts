@@ -29,6 +29,9 @@ export const publicEnv = {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // Opt-in, so a personal deployment never offers strangers a way in. Set this
+  // only on a deployment meant to be shown publicly.
+  guestDemoEnabled: process.env.NEXT_PUBLIC_ENABLE_GUEST_DEMO === "true",
 };
 
 export const serverEnv = {

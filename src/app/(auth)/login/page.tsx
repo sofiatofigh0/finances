@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
-import { getIntegrationStatus } from "@/lib/env";
+import { GuestDemoButton } from "@/components/auth/guest-demo-button";
+import { getIntegrationStatus, publicEnv } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -26,9 +27,12 @@ export default function LoginPage() {
         {status.supabase ? (
           // LoginForm reads ?next= from the URL, which is only known on the
           // client. Without this boundary the static prerender of /login fails.
-          <Suspense fallback={<div className="min-h-[232px]" />}>
-            <LoginForm />
-          </Suspense>
+          <>
+            <Suspense fallback={<div className="min-h-[232px]" />}>
+              <LoginForm />
+            </Suspense>
+            {publicEnv.guestDemoEnabled ? <GuestDemoButton /> : null}
+          </>
         ) : (
           <div className="rounded-[var(--radius-card)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-5">
             <h2 className="text-[15px] font-semibold">Finish setup first</h2>

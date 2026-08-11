@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/nav/app-shell";
-import { getSessionUser } from "@/lib/supabase/server";
+import { DemoBanner } from "@/components/nav/demo-banner";
+import { getSessionUser, isGuest } from "@/lib/supabase/server";
 import { publicEnv } from "@/lib/env";
 
 export default async function AppLayout({
@@ -10,10 +11,17 @@ export default async function AppLayout({
 }) {
   // Middleware already gates this, but a server-side check means a
   // misconfigured matcher can never leak a financial screen.
+  let guest = false;
   if (publicEnv.supabaseUrl) {
     const user = await getSessionUser();
     if (!user) redirect("/login");
+    guest = isGuest(user);
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell>
+      {guest ? <DemoBanner /> : null}
+      {children}
+    </AppShell>
+  );
 }

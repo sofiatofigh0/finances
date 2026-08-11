@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getSessionUser, isGuest } from "@/lib/supabase/server";
 import {
   exchangePublicToken,
   getItemsForUser,
@@ -19,6 +19,16 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (isGuest(user)) {
+    return NextResponse.json(
+      {
+        error:
+          "Connecting a real institution isn't available in the demo. Everything else works on the sample data.",
+      },
+      { status: 403 },
+    );
+  }
 
   try {
     const body = await request.json();

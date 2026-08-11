@@ -46,6 +46,17 @@ export async function getSessionUser() {
   return user;
 }
 
+/**
+ * Whether a user is a guest exploring the public demo.
+ *
+ * Supabase marks anonymous sign-ins on the user record. Guests get the full
+ * app over seeded fake data, but anything that costs money or touches a real
+ * institution is closed to them.
+ */
+export function isGuest(user: { is_anonymous?: boolean } | null): boolean {
+  return Boolean(user?.is_anonymous);
+}
+
 /** Throws if there is no signed-in user. For route handlers and actions. */
 export async function requireUser() {
   const user = await getSessionUser();

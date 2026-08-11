@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/supabase/server";
+import { getSessionUser, isGuest } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createLinkToken } from "@/lib/plaid/sync";
 import { decryptToken } from "@/lib/security/crypto";
@@ -18,6 +18,16 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (isGuest(user)) {
+    return NextResponse.json(
+      {
+        error:
+          "Connecting a real institution isn't available in the demo. Everything else works on the sample data.",
+      },
+      { status: 403 },
+    );
+  }
 
   if (!isPlaidConfigured()) {
     return NextResponse.json(
