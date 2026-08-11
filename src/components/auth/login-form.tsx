@@ -51,8 +51,15 @@ export function LoginForm() {
 
     if (signInError) {
       setStatus("idle");
+      // Show what Supabase actually said. The rate limit in particular needs
+      // naming: retrying is the one thing that makes it worse, so a vague
+      // "try again in a moment" points the user at the wrong action.
+      const isRateLimit =
+        signInError.status === 429 || /rate limit/i.test(signInError.message);
       setError(
-        "We couldn't send that email. Check the address and try again in a moment.",
+        isRateLimit
+          ? "Too many sign-in emails. Supabase's built-in sender allows only a couple per hour — wait, then request exactly one."
+          : `We couldn't send that email: ${signInError.message}`,
       );
       return;
     }
