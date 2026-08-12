@@ -78,11 +78,24 @@ export function LoginForm() {
     setError(null);
 
     const supabase = createClient();
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token,
-      type: "email",
-    });
+
+    // Supabase issues this code through the magic-link template, and which OTP
+    // type verifies it depends on how the email was generated. Rather than
+    // guess, try the type for a plain email OTP and fall back to the magic-link
+    // type — one of the two matches, and a wrong guess costs a round trip
+    // instead of a dead end.
+    let verifyError = (
+      await supabase.auth.verifyOtp({ email: email.trim(), token, type: "email" })
+    ).error;
+
+    if (verifyError) {
+      const second = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: "magiclink",
+      });
+      if (!second.error) verifyError = null;
+    }
 
     if (verifyError) {
       setStatus("sent");

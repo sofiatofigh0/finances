@@ -69,7 +69,7 @@ export async function createLinkToken(
   const client = getPlaidClient();
   const webhookUrl = `${publicEnv.appUrl.replace(/\/$/, "")}/api/plaid/webhook`;
 
-  const response = await client.linkTokenCreate({
+  const build = (withOptional: boolean) => ({
     user: { client_user_id: userId },
     client_name: "Spendable",
     language: "en",
@@ -80,12 +80,31 @@ export async function createLinkToken(
       ? { access_token: options.accessToken }
       : {
           products: PLAID_PRODUCTS,
-          optional_products: PLAID_OPTIONAL_PRODUCTS,
+          ...(withOptional ? { optional_products: PLAID_OPTIONAL_PRODUCTS } : {}),
         }),
     ...(options.redirectUri ? { redirect_uri: options.redirectUri } : {}),
   });
 
-  return response.data.link_token;
+  try {
+    const response = await client.linkTokenCreate(build(true));
+    return response.data.link_token;
+  } catch (error) {
+    // Liabilities is requested as an optional product, and Plaid rejects the
+    // whole Link token when an account is not entitled to it — which is the
+    // normal state of a production account approved only for Transactions.
+    // Optional means optional: drop it and link anyway. Card statement
+    // balances and due dates then come from the user's own entries instead.
+    const code = (error as { response?: { data?: { error_code?: string } } })
+      ?.response?.data?.error_code;
+
+    if (code !== "INVALID_LINK_CUSTOMIZATION" && code !== "PRODUCTS_NOT_SUPPORTED") {
+      throw error;
+    }
+
+    logger.warn("plaid.link_token.optional_products_unavailable", { code });
+    const response = await client.linkTokenCreate(build(false));
+    return response.data.link_token;
+  }
 }
 
 /**
