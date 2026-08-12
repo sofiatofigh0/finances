@@ -43,7 +43,11 @@ export function PlaidLinkButton({
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "We couldn't start the connection.");
+        setError(
+          data.code
+            ? `${data.error ?? "We couldn't start the connection."} (${data.code})`
+            : (data.error ?? "We couldn't start the connection."),
+        );
         setStatus("idle");
         return;
       }

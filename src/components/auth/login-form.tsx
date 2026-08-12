@@ -86,9 +86,7 @@ export function LoginForm() {
 
     if (verifyError) {
       setStatus("sent");
-      setError(
-        "That code didn't work. It expires after an hour and can only be used once — request a new one if you need to.",
-      );
+      setError(`That code didn't work: ${verifyError.message}`);
       return;
     }
 
