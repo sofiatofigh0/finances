@@ -36,6 +36,9 @@ export default async function HomePage() {
   const explanation = explainSafeToSpend(result);
   const goals = computeAllGoalProgress(context.goals, context.asOf);
 
+  const firstName = (profile.display_name ?? "").trim().split(/\s+/)[0];
+  const greeting = firstName ? `Hi, ${firstName}` : "Your money today";
+
   const { data: brokenItems } = await supabase
     .from("spendable_plaid_items")
     .select("id, institution_name, status")
@@ -46,8 +49,13 @@ export default async function HomePage() {
     <div className="px-4 pt-3 md:px-6 md:pt-8">
       <header className="safe-top mb-5 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[19px] font-semibold tracking-tight">Spendable</h1>
-          <p className="truncate text-[12px] text-[var(--color-ink-faint)]">
+          {/* The sidebar already carries the brand on desktop, so the title
+              gives way to the greeting rather than repeating it. */}
+          <h1 className="text-[19px] font-semibold tracking-tight md:text-[24px]">
+            <span className="md:hidden">Spendable</span>
+            <span className="hidden md:inline">{greeting}</span>
+          </h1>
+          <p className="truncate text-[12px] text-[var(--color-ink-faint)] md:text-[13px]">
             Updated {formatRelativeTime(context.dataThrough)}
           </p>
         </div>
@@ -56,7 +64,7 @@ export default async function HomePage() {
           <Link
             href="/settings"
             aria-label="Settings"
-            className="flex size-9 items-center justify-center rounded-full text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-sunken)]"
+            className="flex size-9 items-center justify-center rounded-full text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-sunken)] md:hidden"
           >
             <Settings className="size-[18px]" />
           </Link>
@@ -86,12 +94,19 @@ export default async function HomePage() {
       ) : null}
 
       {result.hasData ? (
-        <div className="flex flex-col gap-3.5">
-          <SafeToSpendHero result={result} explanation={explanation} />
-          <QuickBreakdown plan={result.plan} />
-          <UpcomingEvents events={result.forecast.events} />
-          <GoalsPreview goals={goals} />
-          <AgentQuickEntry />
+        // One column on a phone. On a wide screen the answer and its
+        // derivation stay together on the left, while what is coming up sits
+        // alongside instead of below the fold.
+        <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-5 lg:items-start lg:gap-4">
+          <div className="flex flex-col gap-3.5 lg:col-span-3 lg:gap-4">
+            <SafeToSpendHero result={result} explanation={explanation} />
+            <QuickBreakdown plan={result.plan} />
+          </div>
+          <div className="flex flex-col gap-3.5 lg:col-span-2 lg:gap-4">
+            <UpcomingEvents events={result.forecast.events} />
+            <GoalsPreview goals={goals} />
+            <AgentQuickEntry />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3.5">

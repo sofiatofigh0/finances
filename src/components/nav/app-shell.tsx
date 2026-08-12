@@ -38,6 +38,7 @@ function isActive(pathname: string, href: string): boolean {
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const wide = pathname === "/";
 
   return (
     <div className="min-h-dvh md:flex">
@@ -90,7 +91,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Content. Bottom padding clears the mobile tab bar. */}
       <div className="min-w-0 flex-1">
-        <main className="mx-auto w-full max-w-2xl pb-28 md:pb-10">{children}</main>
+        <main
+          className={cn(
+            "mx-auto w-full pb-28 md:pb-10",
+            // The dashboard is a grid at desktop widths and wants the room.
+            // Reading-oriented screens stay narrow, because a settings form or
+            // a transaction list stretched across 1400px is worse, not better.
+            wide ? "max-w-2xl lg:max-w-6xl" : "max-w-2xl",
+          )}
+        >
+          {children}
+        </main>
       </div>
 
       {/* Mobile bottom navigation */}
