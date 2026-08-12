@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { syncItem, type PlaidItemRow } from "@/lib/plaid/sync";
 import { refreshRecurringCandidates } from "@/lib/db/recurring";
+import { purgeExpiredGuests } from "@/lib/demo/guests";
 import { serverEnv } from "@/lib/env";
 import { safeEqual } from "@/lib/security/crypto";
 import { isPlaidConfigured } from "@/lib/plaid/client";
@@ -33,8 +34,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Reclaim expired demo sandboxes first. This is independent of Plaid, so it
+  // must happen before the early return below or it would never run on a
+  // deployment that only hosts the public demo.
+  const guests = await purgeExpiredGuests();
+
   if (!isPlaidConfigured()) {
-    return NextResponse.json({ synced: 0, skipped: "plaid_not_configured" });
+    return NextResponse.json({
+      synced: 0,
+      skipped: "plaid_not_configured",
+      guests,
+    });
   }
 
   const supabase = createAdminSupabase();
@@ -79,5 +89,5 @@ export async function POST(request: Request) {
     failed,
   });
 
-  return NextResponse.json({ considered: items.length, succeeded, failed });
+  return NextResponse.json({ considered: items.length, succeeded, failed, guests });
 }

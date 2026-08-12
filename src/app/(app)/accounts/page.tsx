@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Landmark, TriangleAlert } from "lucide-react";
-import { getSessionUser, createServerSupabase } from "@/lib/supabase/server";
+import { getSessionUser, createServerSupabase, isGuest } from "@/lib/supabase/server";
 import { loadFinancialContext } from "@/lib/db/context";
 import { getIntegrationStatus } from "@/lib/env";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default async function AccountsPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const guest = isGuest(user);
   const supabase = await createServerSupabase();
   const context = await loadFinancialContext(user.id, new Date(), supabase);
   const integrations = getIntegrationStatus();
@@ -89,7 +90,18 @@ export default async function AccountsPage() {
           <CardTitle>Connected institutions</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          {!integrations.plaid ? (
+          {guest ? (
+            <div className="rounded-xl bg-[var(--color-surface-sunken)] p-3.5">
+              <p className="text-[13px] font-medium">
+                Not available in the demo
+              </p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink-muted)]">
+                Linking a real institution is turned off for demo sessions. The
+                sample accounts below behave exactly like connected ones —
+                balances, transactions, and every calculation are the same.
+              </p>
+            </div>
+          ) : !integrations.plaid ? (
             <div className="rounded-xl bg-[var(--color-caution-soft)] p-3.5">
               <p className="text-[13px] font-medium text-[var(--color-caution)]">
                 Plaid isn&apos;t configured yet
