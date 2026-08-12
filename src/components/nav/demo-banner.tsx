@@ -6,7 +6,7 @@
  */
 export function DemoBanner() {
   return (
-    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[12.5px] leading-relaxed text-[var(--color-ink-muted)] md:px-6">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)] px-4 py-2.5 text-[12.5px] leading-relaxed text-[var(--color-ink-muted)] md:px-6">
       <span className="font-semibold text-[var(--color-ink)]">Demo</span>
       <span>— sample accounts, real calculations. Change anything you like.</span>
       <form action="/auth/signout" method="post">

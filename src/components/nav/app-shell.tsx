@@ -41,7 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const wide = pathname === "/";
 
   return (
-    <div className="min-h-dvh md:flex">
+    // A flex column at every width, so a page that wants to fill the screen
+    // can ask for the space that is left rather than assuming it owns the
+    // whole viewport — which breaks the moment anything sits above it.
+    <div className="flex min-h-dvh flex-col md:flex-row">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-3 py-6 md:flex">
         <Link href="/" className="mb-8 flex items-center gap-2.5 px-3">
@@ -90,10 +93,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Content. Bottom padding clears the mobile tab bar. */}
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <main
           className={cn(
-            "mx-auto w-full pb-28 md:pb-10",
+            "mx-auto flex w-full flex-1 flex-col pb-28 md:pb-10",
             // The dashboard is a grid at desktop widths and wants the room.
             // Reading-oriented screens stay narrow, because a settings form or
             // a transaction list stretched across 1400px is worse, not better.

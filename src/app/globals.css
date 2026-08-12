@@ -75,8 +75,10 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    /* Never let a financial screen scroll sideways on a phone. */
-    overflow-x: hidden;
+    /* Never let a financial screen scroll sideways on a phone. `clip` rather
+       than `hidden`: `hidden` makes the element a scroll container, which
+       silently breaks `position: sticky` for everything inside it. */
+    overflow-x: clip;
   }
 
   body {
@@ -84,7 +86,7 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
     /* Feels like an app, not a web page. */
     overscroll-behavior-y: none;
   }
