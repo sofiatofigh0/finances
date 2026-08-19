@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Mail, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { publicEnv } from "@/lib/env";
@@ -9,29 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 
 /**
- * Email sign-in. Supabase sends one email containing both a magic link and a
- * six-digit code, and either one signs you in.
+ * Email magic-link sign-in.
  *
- * The code matters more than it looks. Tapping the link opens the system
- * browser, but an installed home-screen app on iOS keeps its own cookie jar —
- * so a link tapped from Mail signs in Safari and leaves the installed app
- * logged out. Typing the code keeps the whole exchange inside whichever browser
- * the user is actually holding. It also survives mail scanners that follow
- * links automatically and burn the one-time token before the user taps it.
+ * The email Supabase sends also carries a six-digit code, and this form used to
+ * accept it as a second route in. That route was removed: the token behind it
+ * was consistently reported expired by the time it was typed, while the link
+ * built on the same token worked, and an entry field that reliably fails is
+ * worse than no entry field.
  *
  * Sessions persist across launches (Supabase stores them in cookies), so this
  * is a once-per-device step, not a once-per-launch one.
  */
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
 
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "sending" | "sent" | "verifying"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSendLink(event: React.FormEvent) {
@@ -58,7 +52,7 @@ export function LoginForm() {
         signInError.status === 429 || /rate limit/i.test(signInError.message);
       setError(
         isRateLimit
-          ? "Too many sign-in emails. Supabase's built-in sender allows only a couple per hour — wait, then request exactly one."
+          ? "Too many sign-in emails. Wait a few minutes, then request exactly one."
           : `We couldn't send that email: ${signInError.message}`,
       );
       return;
@@ -66,49 +60,7 @@ export function LoginForm() {
     setStatus("sent");
   }
 
-  async function handleVerifyCode(event: React.FormEvent) {
-    event.preventDefault();
-    const token = code.replace(/\D/g, "");
-    if (token.length !== 6) {
-      setError("Enter the six-digit code from the email.");
-      return;
-    }
-
-    setStatus("verifying");
-    setError(null);
-
-    const supabase = createClient();
-
-    // Supabase issues this code through the magic-link template, and which OTP
-    // type verifies it depends on how the email was generated. Rather than
-    // guess, try the type for a plain email OTP and fall back to the magic-link
-    // type — one of the two matches, and a wrong guess costs a round trip
-    // instead of a dead end.
-    let verifyError = (
-      await supabase.auth.verifyOtp({ email: email.trim(), token, type: "email" })
-    ).error;
-
-    if (verifyError) {
-      const second = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token,
-        type: "magiclink",
-      });
-      if (!second.error) verifyError = null;
-    }
-
-    if (verifyError) {
-      setStatus("sent");
-      setError(`That code didn't work: ${verifyError.message}`);
-      return;
-    }
-
-    // The session now lives in cookies, so the server can see it too.
-    router.replace(next.startsWith("/") ? next : "/");
-    router.refresh();
-  }
-
-  if (status === "sent" || status === "verifying") {
+  if (status === "sent") {
     return (
       <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5">
         <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-[var(--color-positive-soft)] text-[var(--color-positive)]">
@@ -116,59 +68,20 @@ export function LoginForm() {
         </div>
         <h2 className="text-[15px] font-semibold">Check your email</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-ink-muted)]">
-          We sent a sign-in email to <strong>{email}</strong>. Tap the link in
-          it, or enter the six-digit code below if the email includes one.
+          We sent a sign-in link to <strong>{email}</strong>. Open it on this
+          device and you&apos;ll land straight in Spendable.
         </p>
-
-        <form onSubmit={handleVerifyCode} className="mt-4" noValidate>
-          <Field label="Six-digit code">
-            <Input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={6}
-              required
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="tnum text-center text-[22px] tracking-[0.35em]"
-            />
-          </Field>
-
-          {error ? (
-            <p
-              role="alert"
-              className="mb-4 rounded-xl bg-[var(--color-negative-soft)] px-3.5 py-2.5 text-[13px] text-[var(--color-negative)]"
-            >
-              {error}
-            </p>
-          ) : null}
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={status === "verifying" || code.replace(/\D/g, "").length !== 6}
-          >
-            {status === "verifying" ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-
-        <p className="mt-4 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
-          The same email also has a sign-in link. Use the code instead if you
-          added Spendable to your home screen — a tapped link opens your browser,
-          which signs in separately from the installed app.
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
+          The link works once and expires after an hour. Requesting another one
+          cancels the previous link, so use the most recent email.
         </p>
 
         <Button
           variant="ghost"
           size="sm"
-          className="mt-3 -ml-3"
+          className="mt-4 -ml-3"
           onClick={() => {
             setStatus("idle");
-            setCode("");
             setError(null);
           }}
         >
@@ -182,7 +95,7 @@ export function LoginForm() {
     <form onSubmit={handleSendLink} noValidate>
       <Field
         label="Email address"
-        hint="We'll email you a sign-in code. No password to remember."
+        hint="We'll email you a sign-in link. No password to remember."
       >
         <Input
           type="email"
@@ -213,7 +126,7 @@ export function LoginForm() {
         disabled={status === "sending" || !email.trim()}
       >
         <Mail className="size-4" />
-        {status === "sending" ? "Sending…" : "Email me a sign-in code"}
+        {status === "sending" ? "Sending…" : "Email me a sign-in link"}
       </Button>
     </form>
   );
