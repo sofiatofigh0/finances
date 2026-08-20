@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { usePlaidLink, type PlaidLinkOnSuccess } from "react-plaid-link";
 import { Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  rememberLinkSession,
+  clearLinkSession,
+  exchangePublicToken,
+} from "@/lib/plaid/link-storage";
 
 /**
  * The full Plaid Link flow:
@@ -51,6 +56,9 @@ export function PlaidLinkButton({
         setStatus("idle");
         return;
       }
+      // Park the token before Link opens: an OAuth institution navigates the
+      // browser away, and only the same token can resume the flow on return.
+      rememberLinkSession(data.linkToken, window.location.pathname);
       setLinkToken(data.linkToken);
     } catch {
       setError("We couldn't reach the server. Please try again.");
@@ -62,27 +70,16 @@ export function PlaidLinkButton({
     async (publicToken, metadata) => {
       if (!publicToken) return;
       setStatus("exchanging");
-      try {
-        const response = await fetch("/api/plaid/exchange", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            publicToken,
-            institutionId: metadata.institution?.institution_id ?? null,
-            institutionName: metadata.institution?.name ?? null,
-          }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          setError(data.error ?? "We couldn't finish connecting.");
-        }
-      } catch {
-        setError("We couldn't finish connecting. Please try again.");
-      } finally {
-        setStatus("idle");
-        setLinkToken(null);
-        router.refresh();
-      }
+      const result = await exchangePublicToken({
+        publicToken,
+        institutionId: metadata.institution?.institution_id ?? null,
+        institutionName: metadata.institution?.name ?? null,
+      });
+      if (!result.ok) setError(result.error ?? "We couldn't finish connecting.");
+      clearLinkSession();
+      setStatus("idle");
+      setLinkToken(null);
+      router.refresh();
     },
     [router],
   );
@@ -91,6 +88,7 @@ export function PlaidLinkButton({
     token: linkToken,
     onSuccess,
     onExit: () => {
+      clearLinkSession();
       setLinkToken(null);
       setStatus("idle");
     },
