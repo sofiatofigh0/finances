@@ -620,3 +620,79 @@ export async function saveMonthlyPlan(form: FormData): Promise<ActionResult> {
     return ok;
   })) as ActionResult;
 }
+
+// ---------------------------------------------------------------------------
+// Start over
+// ---------------------------------------------------------------------------
+
+/**
+ * Clears everything the user entered by hand and reopens onboarding.
+ *
+ * Deliberately narrow: only hand-entered records go. Plaid-sourced accounts and
+ * transactions are untouched, because re-linking an institution is disruptive
+ * and is never what someone means by "reset my settings". Detected recurring
+ * candidates are cleared too — including past dismissals — so detection gets to
+ * propose afresh against the transaction history rather than staying silent
+ * about merchants that were waved away under the old setup.
+ */
+export async function resetManualSetup(): Promise<ActionResult> {
+  return (await withUser(async (userId, supabase) => {
+    const scoped = <T>(promise: PromiseLike<{ error: T | null }>) => promise;
+
+    const results = await Promise.all([
+      scoped(supabase.from("spendable_goals").delete().eq("user_id", userId)),
+      scoped(
+        supabase.from("spendable_planned_expenses").delete().eq("user_id", userId),
+      ),
+      scoped(
+        supabase.from("spendable_manual_liabilities").delete().eq("user_id", userId),
+      ),
+      scoped(
+        supabase.from("spendable_recurring_candidates").delete().eq("user_id", userId),
+      ),
+      scoped(
+        supabase
+          .from("spendable_recurring_obligations")
+          .delete()
+          .eq("user_id", userId)
+          .neq("source", "plaid"),
+      ),
+      scoped(
+        supabase
+          .from("spendable_income_sources")
+          .delete()
+          .eq("user_id", userId)
+          .neq("source", "plaid"),
+      ),
+      scoped(
+        supabase
+          .from("spendable_accounts")
+          .delete()
+          .eq("user_id", userId)
+          .eq("source", "manual"),
+      ),
+    ]);
+
+    if (results.some((r) => r.error)) {
+      return fail("We couldn't clear everything. Nothing else was changed.");
+    }
+
+    // Send the user back through setup with the defaults they first saw.
+    const { error: profileError } = await supabase
+      .from("spendable_profiles")
+      .update({
+        cash_buffer: 1000,
+        necessary_monthly_allowance: 0,
+        forecast_days: 35,
+        onboarding_completed_at: null,
+      })
+      .eq("user_id", userId);
+
+    if (profileError) {
+      return fail("Your entries were cleared, but the settings didn't reset.");
+    }
+
+    refreshAll();
+    return ok;
+  })) as ActionResult;
+}

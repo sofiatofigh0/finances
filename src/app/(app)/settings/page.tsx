@@ -6,6 +6,7 @@ import { getSessionUser, createServerSupabase } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/db/context";
 import { getIntegrationStatus } from "@/lib/env";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ResetSetup } from "@/components/finance/reset-setup";
 import { Badge } from "@/components/ui/badge";
 import { EntityForm } from "@/components/finance/entity-form";
 import { MerchantRuleList } from "@/components/finance/merchant-rules";
@@ -194,6 +195,29 @@ export default async function SettingsPage() {
               hint="Connect an institution to start syncing"
             />
           )}
+        </CardContent>
+      </Card>
+
+      {/* ------------------------------ Setup ------------------------------ */}
+      <Card className="mb-3.5">
+        <CardHeader>
+          <CardTitle>Setup</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Link href="/onboarding" className="block">
+            <SettingRow
+              label="Review setup"
+              value=""
+              hint="Income, bills, essentials, cash buffer, goals"
+              chevron
+            />
+          </Link>
+          <p className="mb-3 mt-3 text-[12.5px] leading-relaxed text-[var(--color-ink-muted)]">
+            Walk through the same questions asked when you first signed up. Your
+            existing answers are shown, so you can change one and leave the rest
+            alone.
+          </p>
+          <ResetSetup />
         </CardContent>
       </Card>
 
