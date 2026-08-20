@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+/*
+ * Spendable design tokens.
+ *
+ * Calm personal financial control centre, not enterprise accounting software:
+ * a mostly-neutral palette with colour reserved for financial status, generous
+ * spacing, strong typographic hierarchy, and rounded surfaces.
+ */
+
+@theme {
+  --color-canvas: oklch(0.985 0.002 250);
+  --color-surface: oklch(1 0 0);
+  --color-surface-sunken: oklch(0.968 0.003 250);
+  --color-border-subtle: oklch(0.918 0.004 250);
+  --color-border-strong: oklch(0.86 0.006 250);
+
+  --color-ink: oklch(0.21 0.012 258);
+  --color-ink-muted: oklch(0.53 0.012 258);
+  --color-ink-faint: oklch(0.66 0.01 258);
+
+  --color-accent: oklch(0.42 0.055 250);
+  --color-accent-soft: oklch(0.95 0.012 250);
+
+  /* Financial status — used sparingly and never decoratively. */
+  --color-positive: oklch(0.55 0.11 155);
+  --color-positive-soft: oklch(0.955 0.03 155);
+  --color-caution: oklch(0.68 0.14 65);
+  --color-caution-soft: oklch(0.965 0.04 75);
+  --color-negative: oklch(0.55 0.16 25);
+  --color-negative-soft: oklch(0.96 0.03 25);
+
+  --radius-card: 1.125rem;
+
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/*
+ * Dark mode.
+ *
+ * `@theme` must stay at the top level — Tailwind v4 does not scope it to a
+ * media query, and nesting it here would leak these values into light mode.
+ * Instead we override the plain custom properties that `@theme` emitted onto
+ * :root, which is ordinary CSS and respects the media query correctly.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: oklch(0.165 0.008 260);
+    --color-surface: oklch(0.212 0.009 260);
+    --color-surface-sunken: oklch(0.185 0.008 260);
+    --color-border-subtle: oklch(0.28 0.01 260);
+    --color-border-strong: oklch(0.36 0.012 260);
+
+    --color-ink: oklch(0.965 0.003 250);
+    --color-ink-muted: oklch(0.72 0.01 255);
+    --color-ink-faint: oklch(0.58 0.01 255);
+
+    --color-accent: oklch(0.9 0.02 250);
+    --color-accent-soft: oklch(0.27 0.015 255);
+
+    --color-positive: oklch(0.74 0.13 155);
+    --color-positive-soft: oklch(0.26 0.04 155);
+    --color-caution: oklch(0.79 0.13 70);
+    --color-caution-soft: oklch(0.27 0.045 70);
+    --color-negative: oklch(0.7 0.15 25);
+    --color-negative-soft: oklch(0.27 0.05 25);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border-subtle);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Never let a financial screen scroll sideways on a phone. `clip` rather
+       than `hidden`: `hidden` makes the element a scroll container, which
+       silently breaks `position: sticky` for everything inside it. */
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    /* Feels like an app, not a web page. */
+    overscroll-behavior-y: none;
+  }
+
+  /* Respect the notch and home indicator in standalone mode. */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Tabular figures keep money columns from jittering as values change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  button,
+  [role="button"],
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Inputs below 16px trigger iOS zoom-on-focus. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-sunken) 25%,
+      var(--color-border-subtle) 37%,
+      var(--color-surface-sunken) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# Netlify configuration for Spendable.
+# The Next.js Runtime (OpenNext adapter) is installed and kept up to date by
+# Netlify automatically — do not pin @netlify/plugin-nextjs here.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Periodic financial sync fallback. Plaid webhooks remain the primary,
+# event-driven mechanism; this runs hourly to keep data fresh if a webhook
+# is missed or an institution does not support webhooks.
+[functions."scheduled-sync"]
+  schedule = "0 * * * *"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
