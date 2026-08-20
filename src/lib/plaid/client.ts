@@ -79,6 +79,13 @@ export interface PlaidErrorShape {
   errorType: string | null;
   userMessage: string;
   requiresReauth: boolean;
+  /**
+   * Plaid's own explanation of the failure. It names the specific
+   * misconfiguration where the error code only names the category, which is
+   * the difference between a fix and a guess. Configuration detail, not
+   * account data — it carries nothing about the user or their institution.
+   */
+  detail: string | null;
 }
 
 export function interpretPlaidError(error: unknown): PlaidErrorShape {
@@ -88,6 +95,10 @@ export function interpretPlaidError(error: unknown): PlaidErrorShape {
 
   const errorCode = (response?.error_code as string) ?? null;
   const errorType = (response?.error_type as string) ?? null;
+  const detail =
+    (response?.error_message as string) ??
+    (response?.display_message as string) ??
+    null;
 
   const requiresReauth =
     errorCode === "ITEM_LOGIN_REQUIRED" ||
@@ -127,5 +138,5 @@ export function interpretPlaidError(error: unknown): PlaidErrorShape {
         "We couldn't refresh this account. Your previous data is still available.";
   }
 
-  return { errorCode, errorType, userMessage, requiresReauth };
+  return { errorCode, errorType, userMessage, requiresReauth, detail };
 }

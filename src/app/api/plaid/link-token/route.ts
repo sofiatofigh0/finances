@@ -74,12 +74,17 @@ export async function POST(request: Request) {
     logger.error("plaid.link_token.failed", {
       userId: user.id,
       errorCode: interpreted.errorCode,
+      detail: interpreted.detail,
     });
     // Pass the Plaid error code back. It is not sensitive — it names the
     // failure, not the credential — and without it every unrecognised failure
     // reads as the same generic sentence with nothing to act on.
     return NextResponse.json(
-      { error: interpreted.userMessage, code: interpreted.errorCode },
+      {
+        error: interpreted.userMessage,
+        code: interpreted.errorCode,
+        detail: interpreted.detail,
+      },
       { status: 502 },
     );
   }
