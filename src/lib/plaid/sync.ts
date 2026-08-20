@@ -97,9 +97,12 @@ export async function createLinkToken(
     const code = (error as { response?: { data?: { error_code?: string } } })
       ?.response?.data?.error_code;
 
-    if (code !== "INVALID_LINK_CUSTOMIZATION" && code !== "PRODUCTS_NOT_SUPPORTED") {
-      throw error;
-    }
+    const optionalProductRefused =
+      code === "INVALID_PRODUCT" ||
+      code === "PRODUCTS_NOT_SUPPORTED" ||
+      code === "INVALID_LINK_CUSTOMIZATION";
+
+    if (!optionalProductRefused) throw error;
 
     logger.warn("plaid.link_token.optional_products_unavailable", { code });
     const response = await client.linkTokenCreate(build(false));
